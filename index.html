@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Gemini API Demo</title>
+  <style>
+    body { font-family: sans-serif; }
+    label { display: block; margin-top: 10px; }
+    textarea, select { width: 400px; padding: 5px; }
+    button { padding: 10px; margin-top: 10px; }
+    #response { margin-top: 20px; border: 1px solid #ccc; padding: 10px; min-height: 50px; }
+    .error { color: red; }
+  </style>
+</head>
+<body>
+  <h1>Gemini API Demo</h1>
+
+  <label for="apiKey">API Key:</label>
+  <input type="password" id="apiKey" placeholder="Enter your Gemini API Key">
+
+  <label for="modelSelect">Model:</label>
+  <select id="modelSelect"></select>
+
+  <label for="prompt">Prompt:</label>
+  <textarea id="prompt" rows="4" placeholder="Enter your prompt"></textarea>
+
+  <button id="sendButton">Send</button>
+
+  <h2>Response:</h2>
+  <div id="response"></div>
+
+  <script>
+    const apiKeyInput = document.getElementById('apiKey');
+    const modelSelect = document.getElementById('modelSelect');
+    const promptInput = document.getElementById('prompt');
+    const sendButton = document.getElementById('sendButton');
+    const responseDiv = document.getElementById('response');
+
+    let availableModels = []; // 利用可能なモデルを格納する配列
+
+    // モデルリストを取得する関数
+    async function listAvailableModels(apiKey) {
+      const url = 'https://generativelanguage.googleapis.com/v1beta/models?key=' + apiKey;
+      try {
+        const response = await fetch(url);
+        const data = await response.json();
+
+        if (data.models && Array.isArray(data.models)) {
+            availableModels = data.models; // グローバル変数に格納
+          return data.models;
+        } else {
+          throw new Error("Invalid response format from listModels API");
+        }
+      } catch (error) {
+        console.error('Error fetching models:', error);
+        displayError('Failed to fetch models: ' + error.message);
+        return []; // エラー時は空の配列を返す
+      }
+    }
+
+
+    // モデルをプルダウンにセットする関数
+    function populateModelSelect(models) {
+      modelSelect.innerHTML = ''; // プルダウンをクリア
+      models.forEach(model => {
+        const option = document.createElement('option');
+        option.value = model.name;
+        option.textContent = `${model.displayName} (${model.name})`;
+        modelSelect.appendChild(option);
+      });
+    }
+
+    // テキスト生成を行う関数
+    async function generateText(apiKey, modelName, promptText) {
+        const url = `https://generativelanguage.googleapis.com/v1beta/${modelName}:generateContent?key=${apiKey}`;
+
+      const payload = {
+        contents: [{
+          parts: [{
+            text: promptText
+          }]
+        }]
+      };
+
+      try {
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(payload)
+        });
+
+        const data = await response.json();
+
+        if (data.candidates && data.candidates.length > 0) {
+          return data.candidates[0].content.parts[0].text;
+        } else {
+            // エラーメッセージが candidates 以外にある場合も考慮
+            const errorMessage = data.error?.message || "No candidates found or unknown error.";
+            throw new Error(errorMessage);
+        }
+      } catch (error) {
+        console.error('Error generating text:', error);
+        displayError('Failed to generate text: ' + error.message);
+        return null; // エラー時は null を返す
+      }
+    }
+
+    // エラーメッセージを表示する関数
+    function displayError(message) {
+      responseDiv.innerHTML = `<p class="error">${message}</p>`;
+    }
+
+    // APIキー入力時の処理
+    apiKeyInput.addEventListener('change', async () => {
+      const apiKey = apiKeyInput.value;
+      if (apiKey) {
+        const models = await listAvailableModels(apiKey);
+        populateModelSelect(models);
+        // sendButton.disabled = false; // APIキーが入力されたらボタンを有効化 (必要に応じて)
+      } else {
+          modelSelect.innerHTML = ''; // APIキーが空ならプルダウンをクリア
+          // sendButton.disabled = true; // APIキーが空ならボタンを無効化 (必要に応じて)
+      }
+    });
+
+
+
+    // 送信ボタンクリック時の処理
+    sendButton.addEventListener('click', async () => {
+      const apiKey = apiKeyInput.value;
+      const modelName = modelSelect.value;
+      const prompt = promptInput.value;
+
+      responseDiv.textContent = 'Generating...'; // ローディング表示
+
+      const generatedText = await generateText(apiKey, modelName, prompt);
+
+      if (generatedText !== null) {
+        responseDiv.textContent = generatedText;
+      } // エラーの場合は displayError で表示される
+    });
+
+
+  </script>
+</body>
+</html>
