@@ -37,7 +37,7 @@
 
     let availableModels = []; // 利用可能なモデルを格納する配列
 
-    // モデルリストを取得する関数
+        // モデルリストを取得する関数 (修正)
     async function listAvailableModels(apiKey) {
       const url = 'https://generativelanguage.googleapis.com/v1beta/models?key=' + apiKey;
       try {
@@ -45,8 +45,12 @@
         const data = await response.json();
 
         if (data.models && Array.isArray(data.models)) {
-            availableModels = data.models; // グローバル変数に格納
-          return data.models;
+          // フィルタリング: supportedGenerationMethods に generateText が含まれるモデルのみ
+          const filteredModels = data.models.filter(model =>
+            model.supportedGenerationMethods && model.supportedGenerationMethods.includes("generateText")
+          );
+          availableModels = filteredModels; // グローバル変数に格納
+          return filteredModels;
         } else {
           throw new Error("Invalid response format from listModels API");
         }
