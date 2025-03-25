@@ -7,7 +7,7 @@
     label { display: block; margin-top: 10px; }
     textarea, select { width: 400px; padding: 5px; }
     button { padding: 10px; margin-top: 10px; }
-    #response { margin-top: 20px; border: 1px solid #ccc; padding: 10px; min-height: 50px; }
+    #response { margin-top: 20px; border: 1px solid #ccc; padding: 10px; min-height: 50px; white-space: pre-wrap; /* 改行を保持 */ }
     .error { color: red; }
   </style>
 </head>
@@ -37,7 +37,7 @@
 
     let availableModels = []; // 利用可能なモデルを格納する配列
 
-        // モデルリストを取得する関数 (修正)
+   // モデルリストを取得する関数 (generateText のみ)
     async function listAvailableModels(apiKey) {
       const url = 'https://generativelanguage.googleapis.com/v1beta/models?key=' + apiKey;
       try {
